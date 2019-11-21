@@ -1,8 +1,22 @@
-
+#if __has_include(<RCTText/RCTTextSelection.h>)
 #import <RCTText/RCTTextSelection.h>
+#else
+#import "RCTTextSelection.h"
+#endif
+
+#if __has_include(<RCTText/RCTUITextView.h>)
 #import <RCTText/RCTUITextView.h>
+#else
+#import "RCTUITextView.h"
+#endif
+
 #import "RNSelectableTextView.h"
+
+#if __has_include(<RCTText/RCTTextAttributes.h>)
 #import <RCTText/RCTTextAttributes.h>
+#else
+#import "RCTTextAttributes.h"
+#endif
 
 #import <React/RCTUtils.h>
 
@@ -48,7 +62,7 @@ NSString *const CUSTOM_SELECTOR = @"_CUSTOM_SELECTOR_";
         [self addSubview:_backedTextInputView];
         
         UILongPressGestureRecognizer *longPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
-        
+
         UITapGestureRecognizer *tapGesture = [ [UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
         tapGesture.numberOfTapsRequired = 2;
         
@@ -212,7 +226,28 @@ NSString *const CUSTOM_SELECTOR = @"_CUSTOM_SELECTOR_";
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
-    [_backedTextInputView setSelectedTextRange:nil notifyDelegate:true];
+    if (!_backedTextInputView.isFirstResponder) {
+        [_backedTextInputView setSelectedTextRange:nil notifyDelegate:true];
+    } else {
+        UIView *sub = nil;
+        for (UIView *subview in self.subviews.reverseObjectEnumerator) {
+            CGPoint subPoint = [subview convertPoint:point toView:self];
+            UIView *result = [subview hitTest:subPoint withEvent:event];
+            
+            if (!result.isFirstResponder) {
+                NSString *name = NSStringFromClass([result class]);
+
+                if ([name isEqual:@"UITextRangeView"]) {
+                    sub = result;
+                }
+            }
+        }
+        
+        if (sub == nil) {
+            [_backedTextInputView setSelectedTextRange:nil notifyDelegate:true];
+        }
+    }
+
     return [super hitTest:point withEvent:event];
 }
 
